@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="نظام تقييم المركبات المستردة - تسجيل الدخول">
+    <meta name="theme-color" content="#667eea">
+    <title>نظام تقييم المركبات - تسجيل الدخول</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+        }
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 450px;
+            overflow: hidden;
+        }
+        
+        .login-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .login-header i {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .login-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .login-header p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+        
+        .login-body {
+            padding: 40px 30px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-radius: 12px;
+            background: #f1f5f9;
+            padding: 5px;
+            margin-bottom: 30px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+        
+        .tab.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab:not(.active) {
+            color: #64748b;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .form-group label i {
+            margin-left: 8px;
+            color: var(--primary);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-google {
+            background: white;
+            color: #333;
+            border: 2px solid #e5e7eb;
+            margin-top: 15px;
+        }
+        
+        .btn-google:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+        
+        .btn-google img {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+            color: #94a3b8;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e5e7eb;
+        }
+        
+        .divider span {
+            padding: 0 15px;
+            font-size: 0.9rem;
+        }
+        
+        .forgot-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .forgot-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .forgot-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .form-section {
+            display: none;
+        }
+        
+        .form-section.active {
+            display: block;
+        }
+        
+        .alert {
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alert.show {
+            display: flex;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-header {
+                padding: 30px 20px;
+            }
+            
+            .login-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .login-body {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <i class="fas fa-car-side"></i>
+            <h1>نظام تقييم المركبات</h1>
+            <p>إدارة المركبات المستردة بكفاءة</p>
+        </div>
+        
+        <div class="login-body">
+            <!-- Alert -->
+            <div class="alert" id="alertBox">
+                <i class="fas fa-info-circle"></i>
+                <span id="alertMessage"></span>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('login')">تسجيل الدخول</button>
+                <button class="tab" onclick="switchTab('register')">إنشاء حساب</button>
+            </div>
+            
+            <!-- Login Form -->
+            <div class="form-section active" id="loginForm">
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i>البريد الإلكتروني</label>
+                    <input type="email" class="form-input" id="loginEmail" placeholder="example@email.com">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i>كلمة المرور</label>
+                    <input type="password" class="form-input" id="loginPassword" placeholder="••••••••">
+                </div>
+                
+                <button class="btn btn-primary" id="loginBtn" onclick="handleLogin()">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>تسجيل الدخول</span>
+                </button>
+                
+                <div class="divider">
+                    <span>أو</span>
+                </div>
+                
+                <button class="btn btn-google" onclick="handleGoogleLogin()">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                    <span>تسجيل الدخول بـ Google</span>
+                </button>
+                
+                <div class="forgot-link">
+                    <a href="#" onclick="showResetPassword()">نسيت كلمة المرور؟</a>
+                </div>
+            </div>
+            
+            <!-- Register Form -->
+            <div class="form-section" id="registerForm">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i>الاسم الكامل</label>
+                    <input type="text" class="form-input" id="registerName" placeholder="أدخل اسمك الكامل">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i>البريد الإلكتروني</label>
+                    <input type="email" class="form-input" id="registerEmail" placeholder="example@email.com">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i>كلمة المرور</label>
+                    <input type="password" class="form-input" id="registerPassword" placeholder="••••••••">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i>تأكيد كلمة المرور</label>
+                    <input type="password" class="form-input" id="registerConfirmPassword" placeholder="••••••••">
+                </div>
+                
+                <button class="btn btn-primary" id="registerBtn" onclick="handleRegister()">
+                    <i class="fas fa-user-plus"></i>
+                    <span>إنشاء حساب</span>
+                </button>
+            </div>
+            
+            <!-- Reset Password Form -->
+            <div class="form-section" id="resetForm">
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i>البريد الإلكتروني</label>
+                    <input type="email" class="form-input" id="resetEmail" placeholder="أدخل بريدك الإلكتروني">
+                </div>
+                
+                <button class="btn btn-primary" onclick="handleResetPassword()">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>إرسال رابط الاستعادة</span>
+                </button>
+                
+                <div class="forgot-link" style="margin-top: 20px;">
+                    <a href="#" onclick="switchTab('login')">العودة لتسجيل الدخول</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/supabase-config.js"></script>
+    
+    <script>
+        // Check if user is already logged in
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                window.location.href = 'dashboard.html';
+            }
+        }
+        
+        // Run auth check on page load
+        checkAuth();
+        
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
+            
+            if (tab === 'login') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else if (tab === 'register') {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+            }
+            
+            hideAlert();
+        }
+        
+        // Show reset password form
+        function showResetPassword() {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
+            document.getElementById('resetForm').classList.add('active');
+        }
+        
+        // Alert functions
+        function showAlert(message, type = 'error') {
+            const alertBox = document.getElementById('alertBox');
+            const alertMessage = document.getElementById('alertMessage');
+            
+            alertBox.className = `alert show alert-${type}`;
+            alertMessage.textContent = message;
+            
+            const icon = alertBox.querySelector('i');
+            icon.className = type === 'success' ? 'fas fa-check-circle' : 
+                            type === 'warning' ? 'fas fa-exclamation-triangle' : 
+                            'fas fa-exclamation-circle';
+        }
+        
+        function hideAlert() {
+            document.getElementById('alertBox').classList.remove('show');
+        }
+        
+        // Set button loading state
+        function setLoading(btnId, loading) {
+            const btn = document.getElementById(btnId);
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner"></div><span>جاري المعالجة...</span>';
+            } else {
+                btn.disabled = false;
+                if (btnId === 'loginBtn') {
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>تسجيل الدخول</span>';
+                } else if (btnId === 'registerBtn') {
+                    btn.innerHTML = '<i class="fas fa-user-plus"></i><span>إنشاء حساب</span>';
+                }
+            }
+        }
+        
+        // Handle Login
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showAlert('يرجى ملء جميع الحقول', 'warning');
+                return;
+            }
+            
+            setLoading('loginBtn', true);
+            hideAlert();
+            
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) throw error;
+                
+                showAlert('تم تسجيل الدخول بنجاح!', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } catch (error) {
+                console.error('Login error:', error);
+                let message = 'خطأ في تسجيل الدخول';
+                if (error.message.includes('Invalid login')) {
+                    message = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+                } else if (error.message.includes('Email not confirmed')) {
+                    message = 'يرجى تأكيد البريد الإلكتروني أولاً';
+                }
+                showAlert(message, 'error');
+                setLoading('loginBtn', false);
+            }
+        }
+        
+        // Handle Register
+        async function handleRegister() {
+            const name = document.getElementById('registerName').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            
+            if (!name || !email || !password || !confirmPassword) {
+                showAlert('يرجى ملء جميع الحقول', 'warning');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showAlert('كلمتا المرور غير متطابقتين', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showAlert('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'warning');
+                return;
+            }
+            
+            setLoading('registerBtn', true);
+            hideAlert();
+            
+            try {
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: name
+                        }
+                    }
+                });
+                
+                if (error) throw error;
+                
+                showAlert('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.', 'success');
+                setTimeout(() => {
+                    switchTab('login');
+                    document.getElementById('loginEmail').value = email;
+                }, 2000);
+            } catch (error) {
+                console.error('Register error:', error);
+                let message = 'خطأ في إنشاء الحساب';
+                if (error.message.includes('already registered')) {
+                    message = 'البريد الإلكتروني مسجل مسبقاً';
+                }
+                showAlert(message, 'error');
+            }
+            
+            setLoading('registerBtn', false);
+        }
+        
+        // Handle Google Login
+        async function handleGoogleLogin() {
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin + '/dashboard.html'
+                    }
+                });
+                
+                if (error) throw error;
+            } catch (error) {
+                console.error('Google login error:', error);
+                showAlert('خطأ في تسجيل الدخول بـ Google', 'error');
+            }
+        }
+        
+        // Handle Password Reset
+        async function handleResetPassword() {
+            const email = document.getElementById('resetEmail').value.trim();
+            
+            if (!email) {
+                showAlert('يرجى إدخال البريد الإلكتروني', 'warning');
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/reset-password.html'
+                });
+                
+                if (error) throw error;
+                
+                showAlert('تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني', 'success');
+            } catch (error) {
+                console.error('Reset password error:', error);
+                showAlert('خطأ في إرسال رابط الاستعادة', 'error');
+            }
+        }
+        
+        // Enter key handlers
+        document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+        
+        document.getElementById('registerConfirmPassword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleRegister();
+        });
+    </script>
+</body>
+</html>
