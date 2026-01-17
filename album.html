@@ -11,8 +11,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Supabase JS -->
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Supabase Config -->
+    <script src="js/supabase-config.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -502,13 +505,12 @@
         <div class="lightbox-counter" id="lightboxCounter">1 / 1</div>
     </div>
     
-    <script src="js/supabase-config.js"></script>
-    
     <script>
         // Global variables
         let currentImages = [];
         let currentImageIndex = 0;
         let vehicleData = null;
+        let supabaseClient = null;
         
         // Get vehicle ID from URL
         function getVehicleId() {
@@ -516,16 +518,23 @@
             return params.get('id');
         }
         
-        // Initialize and check auth
-        async function initAlbum() {
+        // Initialize Supabase and check auth
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize Supabase
+            if (typeof window.supabase !== 'undefined' && typeof window.supabase.createClient === 'function') {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('✅ Supabase client initialized in album page');
+            } else {
+                showError('خطأ في تحميل النظام', 'يرجى تحديث الصفحة');
+                return;
+            }
+            
+            // Check auth
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 
-                if (!session) {
+                if (!session || !session.user) {
                     showError('يجب تسجيل الدخول أولاً', 'لم يتم العثور على جلسة مستخدم نشطة');
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 2000);
                     return;
                 }
                 
@@ -535,12 +544,23 @@
                     return;
                 }
                 
-                // Load vehicle from Supabase
+                // Load vehicle data
+                await loadVehicle(session.user.id, vehicleId);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('خطأ في التحميل', error.message);
+            }
+        });
+        
+        // Load vehicle data
+        async function loadVehicle(userId, vehicleId) {
+            try {
                 const { data, error } = await supabaseClient
                     .from('vehicles')
                     .select('*')
                     .eq('id', vehicleId)
-                    .eq('user_id', session.user.id)
+                    .eq('user_id', userId)
                     .single();
                 
                 if (error) throw error;
@@ -552,15 +572,11 @@
                 
                 vehicleData = data;
                 displayAlbum(vehicleData);
-                
             } catch (error) {
                 console.error('Error loading vehicle:', error);
                 showError('خطأ في التحميل', error.message);
             }
         }
-        
-        // Run on page load
-        initAlbum();
         
         // Display album
         function displayAlbum(vehicle) {
@@ -583,11 +599,11 @@
                 </div>
                 <div class="info-item">
                     <i class="fas fa-file-contract"></i>
-                    <span>عقد: ${vehicle.contract_no || '-'}</span>
+                    <span>عقد: ${vehicle.contractNo || '-'}</span>
                 </div>
                 <div class="info-item">
                     <i class="fas fa-user"></i>
-                    <span>${vehicle.customer_name || '-'}</span>
+                    <span>${vehicle.customerName || '-'}</span>
                 </div>
                 <div class="info-item">
                     <i class="fas fa-barcode"></i>
@@ -596,12 +612,12 @@
             `;
             
             // GPS section
-            if (vehicle.gps_latitude && vehicle.gps_longitude) {
+            if (vehicle.gpsLatitude && vehicle.gpsLongitude) {
                 document.getElementById('gpsSection').style.display = 'block';
                 document.getElementById('gpsInfo').innerHTML = `
-                    <span><strong>خط العرض:</strong> ${vehicle.gps_latitude}</span>
-                    <span><strong>خط الطول:</strong> ${vehicle.gps_longitude}</span>
-                    <a href="https://www.google.com/maps?q=${vehicle.gps_latitude},${vehicle.gps_longitude}" 
+                    <span><strong>خط العرض:</strong> ${vehicle.gpsLatitude}</span>
+                    <span><strong>خط الطول:</strong> ${vehicle.gpsLongitude}</span>
+                    <a href="https://www.google.com/maps?q=${vehicle.gpsLatitude},${vehicle.gpsLongitude}" 
                        target="_blank" class="btn btn-primary" style="background: #22c55e;">
                         <i class="fas fa-external-link-alt"></i>
                         فتح في الخريطة
@@ -619,7 +635,7 @@
             grid.innerHTML = vehicle.images.map((img, index) => `
                 <div class="album-item" onclick="openLightbox(${index})">
                     <span class="album-item-number">${index + 1}</span>
-                    <img src="${img}" alt="صورة ${index + 1}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23e5e7eb%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2250%22 fill=%22%2394a3b8%22 font-size=%2212%22 text-anchor=%22middle%22 dy=%22.3em%22>Image Error</text></svg>'">
+                    <img src="${img}" alt="صورة ${index + 1}" loading="lazy">
                     <div class="album-item-overlay">
                         <i class="fas fa-search-plus"></i>
                     </div>
@@ -663,28 +679,16 @@
         }
         
         // Download all images
-        async function downloadAllImages() {
-            for (let i = 0; i < currentImages.length; i++) {
-                try {
-                    const url = currentImages[i];
-                    const response = await fetch(url);
-                    const blob = await response.blob();
-                    const blobUrl = URL.createObjectURL(blob);
-                    
-                    const link = document.createElement('a');
-                    link.href = blobUrl;
-                    link.download = `vehicle_image_${i + 1}.jpg`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
-                    
-                    // Small delay between downloads
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                } catch (error) {
-                    console.error(`Error downloading image ${i + 1}:`, error);
-                }
-            }
+        function downloadAllImages() {
+            currentImages.forEach((url, index) => {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `vehicle_image_${index + 1}.jpg`;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
         }
         
         // Keyboard navigation
