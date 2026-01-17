@@ -15,7 +15,7 @@ window.NFFilters = (function() {
     
     // ===== Default Options =====
     const DEFAULT_OPTIONS = {
-        searchFields: ['customerName', 'make', 'model', 'vin', 'contractNo', 'plateNo', 'color', 'notes'],
+        searchFields: ['customer_name', 'customerName', 'make', 'model', 'vin', 'contract_no', 'contractNo', 'plate_no', 'plateNo', 'color', 'notes'],
         debounceDelay: 300,
         saveToUrl: true,
         onFilter: null
@@ -30,7 +30,7 @@ window.NFFilters = (function() {
             this.options = { ...DEFAULT_OPTIONS, ...options };
             this.filters = {};
             this.searchQuery = '';
-            this.sortBy = 'createdAt';
+            this.sortBy = 'created_at';
             this.sortDir = 'desc';
             this.debounceTimer = null;
             
@@ -74,7 +74,7 @@ window.NFFilters = (function() {
         reset() {
             this.filters = {};
             this.searchQuery = '';
-            this.sortBy = 'createdAt';
+            this.sortBy = 'created_at';
             this.sortDir = 'desc';
             
             // Clear UI elements
@@ -90,7 +90,7 @@ window.NFFilters = (function() {
             });
             
             const sortSelect = document.getElementById('nf-sort-select');
-            if (sortSelect) sortSelect.value = 'createdAt-desc';
+            if (sortSelect) sortSelect.value = 'created_at-desc';
             
             this.apply();
         }
@@ -185,7 +185,7 @@ window.NFFilters = (function() {
                 params.set(key, this.filters[key]);
             });
             
-            if (this.sortBy !== 'createdAt') {
+            if (this.sortBy !== 'created_at' && this.sortBy !== 'createdAt') {
                 params.set('sort', this.sortBy);
             }
             
@@ -279,13 +279,19 @@ window.NFFilters = (function() {
         // Get filter display value (translated)
         getFilterDisplayValue(key, value) {
             const translations = {
+                overall_rating: {
+                    'excellent': 'ممتاز',
+                    'good': 'جيد',
+                    'fair': 'مقبول',
+                    'poor': 'ضعيف'
+                },
                 overallRating: {
                     'excellent': 'ممتاز',
                     'good': 'جيد',
                     'fair': 'مقبول',
                     'poor': 'ضعيف'
                 },
-                fuelType: {
+                fuel_type: {
                     'petrol': 'بنزين',
                     'diesel': 'ديزل',
                     'hybrid': 'هجين',
@@ -337,7 +343,9 @@ window.NFFilters = (function() {
                 make: 'الصانع',
                 model: 'الموديل',
                 year: 'السنة',
+                overall_rating: 'التقييم',
                 overallRating: 'التقييم',
+                fuel_type: 'نوع الوقود',
                 fuelType: 'نوع الوقود',
                 color: 'اللون',
                 recommendation: 'التوصية',
@@ -416,7 +424,7 @@ window.NFFilters = (function() {
                             <i class="fas fa-star"></i>
                             التقييم
                         </label>
-                        <select class="nf-filter-select" data-filter="overallRating" id="nf-filter-rating">
+                        <select class="nf-filter-select" data-filter="overall_rating" id="nf-filter-rating">
                             <option value="">جميع التقييمات</option>
                             <option value="excellent">ممتاز</option>
                             <option value="good">جيد</option>
@@ -430,7 +438,7 @@ window.NFFilters = (function() {
                             <i class="fas fa-gas-pump"></i>
                             نوع الوقود
                         </label>
-                        <select class="nf-filter-select" data-filter="fuelType" id="nf-filter-fuel">
+                        <select class="nf-filter-select" data-filter="fuel_type" id="nf-filter-fuel">
                             <option value="">جميع أنواع الوقود</option>
                             <option value="petrol">بنزين</option>
                             <option value="diesel">ديزل</option>
@@ -468,7 +476,7 @@ window.NFFilters = (function() {
                             <i class="fas fa-map-marker-alt"></i>
                             موقع الاسترداد
                         </label>
-                        <select class="nf-filter-select" data-filter="recoveryLocation" id="nf-filter-location">
+                        <select class="nf-filter-select" data-filter="recovery_location" id="nf-filter-location">
                             <option value="">جميع المواقع</option>
                         </select>
                     </div>
@@ -478,7 +486,7 @@ window.NFFilters = (function() {
                             <i class="fas fa-cog"></i>
                             حالة التشغيل
                         </label>
-                        <select class="nf-filter-select" data-filter="operationStatus" id="nf-filter-opStatus">
+                        <select class="nf-filter-select" data-filter="operation_status" id="nf-filter-opStatus">
                             <option value="">جميع الحالات</option>
                             <option value="working">تعمل</option>
                             <option value="not_working">لا تعمل</option>

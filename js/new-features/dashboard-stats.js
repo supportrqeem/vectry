@@ -52,12 +52,13 @@ window.NFStats = (function() {
         
         vehicles.forEach(v => {
             // Total value
-            const value = parseFloat(v.marketValue) || 0;
+            const value = parseFloat(v.market_value || v.marketValue) || 0;
             stats.totalValue += value;
             
             // Ratings count
-            if (v.overallRating && stats.ratings.hasOwnProperty(v.overallRating)) {
-                stats.ratings[v.overallRating]++;
+            const rating = v.overall_rating || v.overallRating;
+            if (rating && stats.ratings.hasOwnProperty(rating)) {
+                stats.ratings[rating]++;
             }
             
             // By make
@@ -71,8 +72,9 @@ window.NFStats = (function() {
             }
             
             // By fuel type
-            if (v.fuelType) {
-                stats.byFuel[v.fuelType] = (stats.byFuel[v.fuelType] || 0) + 1;
+            const fuelType = v.fuel_type || v.fuelType;
+            if (fuelType) {
+                stats.byFuel[fuelType] = (stats.byFuel[fuelType] || 0) + 1;
             }
             
             // By recommendation
@@ -81,8 +83,9 @@ window.NFStats = (function() {
             }
             
             // This month and last month count
-            if (v.createdAt) {
-                const date = v.createdAt.toDate ? v.createdAt.toDate() : new Date(v.createdAt);
+            const createdAt = v.created_at || v.createdAt;
+            if (createdAt) {
+                const date = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
                 
                 if (date.getMonth() === thisMonth && date.getFullYear() === thisYear) {
                     stats.thisMonth++;
@@ -108,15 +111,15 @@ window.NFStats = (function() {
         
         // Top 5 vehicles by value
         stats.topVehicles = [...vehicles]
-            .filter(v => v.marketValue)
-            .sort((a, b) => (parseFloat(b.marketValue) || 0) - (parseFloat(a.marketValue) || 0))
+            .filter(v => v.market_value || v.marketValue)
+            .sort((a, b) => (parseFloat(b.market_value || b.marketValue) || 0) - (parseFloat(a.market_value || a.marketValue) || 0))
             .slice(0, 5);
         
         // Recent vehicles
         stats.recentVehicles = [...vehicles]
             .sort((a, b) => {
-                const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
-                const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+                const dateA = (a.created_at || a.createdAt)?.toDate ? (a.created_at || a.createdAt).toDate() : new Date(a.created_at || a.createdAt || 0);
+                const dateB = (b.created_at || b.createdAt)?.toDate ? (b.created_at || b.createdAt).toDate() : new Date(b.created_at || b.createdAt || 0);
                 return dateB - dateA;
             })
             .slice(0, 5);
@@ -343,9 +346,9 @@ window.NFStats = (function() {
                                             <span class="nf-top-rank rank-${i + 1}">${i + 1}</span>
                                             <div class="nf-top-info">
                                                 <div class="nf-top-name">${v.make || ''} ${v.model || ''} ${v.year || ''}</div>
-                                                <div class="nf-top-detail">${v.customerName || 'غير محدد'}</div>
+                                                <div class="nf-top-detail">${v.customer_name || v.customerName || 'غير محدد'}</div>
                                             </div>
-                                            <span class="nf-top-value">${formatFullNumber(v.marketValue || 0)} ر.س</span>
+                                            <span class="nf-top-value">${formatFullNumber(v.market_value || v.marketValue || 0)} ر.س</span>
                                         </li>
                                     `).join('')}
                                 </ul>
@@ -362,8 +365,10 @@ window.NFStats = (function() {
                             ${stats.recentVehicles.length > 0 ? `
                                 <ul class="nf-recent-list">
                                     ${stats.recentVehicles.map(v => {
-                                        const date = v.createdAt?.toDate ? v.createdAt.toDate() : new Date(v.createdAt || 0);
+                                        const createdAt = v.created_at || v.createdAt;
+                                        const date = createdAt?.toDate ? createdAt.toDate() : new Date(createdAt || 0);
                                         const formattedDate = date.toLocaleDateString('ar-SA');
+                                        const rating = v.overall_rating || v.overallRating;
                                         return `
                                             <li class="nf-recent-item">
                                                 <div class="nf-recent-icon">
@@ -372,7 +377,7 @@ window.NFStats = (function() {
                                                 <div class="nf-recent-info">
                                                     <div class="nf-recent-name">${v.make || ''} ${v.model || ''} ${v.year || ''}</div>
                                                     <div class="nf-recent-detail">
-                                                        <span class="nf-badge nf-badge-${v.overallRating || 'good'}">${getRatingText(v.overallRating)}</span>
+                                                        <span class="nf-badge nf-badge-${rating || 'good'}">${getRatingText(rating)}</span>
                                                         <span>${formattedDate}</span>
                                                     </div>
                                                 </div>

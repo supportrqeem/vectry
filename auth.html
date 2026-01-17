@@ -816,29 +816,19 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
         // ========================================
-        // 🔥 Firebase Configuration
+        // ⚡ Supabase Configuration
         // ========================================
-        // ⚠️ استبدل هذه القيم بقيم مشروعك من Firebase Console
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        const SUPABASE_URL = 'https://enrlrqjsgcpcggyuoazr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVucmxycWpzZ2NwY2dneXVvYXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyODU0MjQsImV4cCI6MjA4Mzg2MTQyNH0.hV1-XB-CKIlRaqib8sTZjxzlbZO_5kUuI6L0OT2Wlvs';
+        
+        // Initialize Supabase
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase client initialized');
 
         // ========================================
         // Tab Switching
@@ -928,14 +918,12 @@
             showLoading('جاري تسجيل الدخول...');
             
             try {
-                // Set persistence
-                const persistence = rememberMe 
-                    ? firebase.auth.Auth.Persistence.LOCAL 
-                    : firebase.auth.Auth.Persistence.SESSION;
-                await auth.setPersistence(persistence);
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
                 
-                // Sign in
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                if (error) throw error;
                 
                 // Redirect to dashboard
                 showAlert('تم تسجيل الدخول بنجاح! جاري التحويل...', 'success');
@@ -980,25 +968,37 @@
             showLoading('جاري إنشاء الحساب...');
             
             try {
-                // Create user
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                
-                // Update profile
-                await userCredential.user.updateProfile({
-                    displayName: name
-                });
-                
-                // Create user document in Firestore
-                await db.collection('users').doc(userCredential.user.uid).set({
-                    name: name,
+                // Create user with Supabase
+                const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    settings: {
-                        darkMode: false,
-                        language: 'ar',
-                        notifications: true
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: name,
+                            display_name: name
+                        }
                     }
                 });
+                
+                if (error) throw error;
+                
+                // Create user profile in users table
+                if (data.user) {
+                    const { error: profileError } = await supabase
+                        .from('users')
+                        .insert([{
+                            id: data.user.id,
+                            name: name,
+                            email: email,
+                            settings: {
+                                darkMode: false,
+                                language: 'ar',
+                                notifications: true
+                            }
+                        }]);
+                    
+                    if (profileError) console.error('Profile creation error:', profileError);
+                }
                 
                 showAlert('تم إنشاء الحساب بنجاح! جاري التحويل...', 'success');
                 setTimeout(() => {
@@ -1028,7 +1028,12 @@
             showLoading('جاري إرسال رابط الاستعادة...');
             
             try {
-                await auth.sendPasswordResetEmail(email);
+                const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/auth.html?reset=true'
+                });
+                
+                if (error) throw error;
+                
                 hideLoading();
                 document.getElementById('resetSuccess').classList.add('show');
                 document.getElementById('resetForm').style.display = 'none';
@@ -1046,25 +1051,14 @@
             showLoading('جاري تسجيل الدخول بـ Google...');
             
             try {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                const result = await auth.signInWithPopup(provider);
+                const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin + '/dashboard.html'
+                    }
+                });
                 
-                // Check if new user
-                if (result.additionalUserInfo.isNewUser) {
-                    await db.collection('users').doc(result.user.uid).set({
-                        name: result.user.displayName,
-                        email: result.user.email,
-                        photoURL: result.user.photoURL,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        settings: {
-                            darkMode: false,
-                            language: 'ar',
-                            notifications: true
-                        }
-                    });
-                }
-                
-                window.location.href = 'dashboard.html';
+                if (error) throw error;
                 
             } catch (error) {
                 hideLoading();
@@ -1076,23 +1070,15 @@
             showLoading('جاري تسجيل الدخول بـ Microsoft...');
             
             try {
-                const provider = new firebase.auth.OAuthProvider('microsoft.com');
-                const result = await auth.signInWithPopup(provider);
+                const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'azure',
+                    options: {
+                        redirectTo: window.location.origin + '/dashboard.html',
+                        scopes: 'email'
+                    }
+                });
                 
-                if (result.additionalUserInfo.isNewUser) {
-                    await db.collection('users').doc(result.user.uid).set({
-                        name: result.user.displayName,
-                        email: result.user.email,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        settings: {
-                            darkMode: false,
-                            language: 'ar',
-                            notifications: true
-                        }
-                    });
-                }
-                
-                window.location.href = 'dashboard.html';
+                if (error) throw error;
                 
             } catch (error) {
                 hideLoading();
@@ -1127,29 +1113,36 @@
             console.error('Auth Error:', error);
             
             const errorMessages = {
-                'auth/user-not-found': 'البريد الإلكتروني غير مسجل',
-                'auth/wrong-password': 'كلمة المرور غير صحيحة',
-                'auth/email-already-in-use': 'البريد الإلكتروني مستخدم بالفعل',
-                'auth/weak-password': 'كلمة المرور ضعيفة جداً',
-                'auth/invalid-email': 'البريد الإلكتروني غير صالح',
-                'auth/too-many-requests': 'تم تجاوز عدد المحاولات. حاول لاحقاً',
-                'auth/network-request-failed': 'خطأ في الاتصال بالإنترنت',
-                'auth/popup-closed-by-user': 'تم إغلاق نافذة تسجيل الدخول',
-                'auth/invalid-credential': 'بيانات الدخول غير صحيحة'
+                'Invalid login credentials': 'بيانات الدخول غير صحيحة',
+                'Email not confirmed': 'يرجى تأكيد البريد الإلكتروني',
+                'User already registered': 'البريد الإلكتروني مستخدم بالفعل',
+                'Password should be at least 6 characters': 'كلمة المرور يجب أن تكون 6 أحرف على الأقل',
+                'Invalid email': 'البريد الإلكتروني غير صالح',
+                'Rate limit exceeded': 'تم تجاوز عدد المحاولات. حاول لاحقاً',
+                'Network error': 'خطأ في الاتصال بالإنترنت'
             };
             
-            showAlert(errorMessages[error.code] || 'حدث خطأ غير متوقع. حاول مجدداً');
+            const message = error.message || error.error_description || 'حدث خطأ غير متوقع. حاول مجدداً';
+            showAlert(errorMessages[message] || message);
         }
 
         // ========================================
         // Check Auth State on Load
         // ========================================
-        auth.onAuthStateChanged(user => {
-            if (user) {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session?.user) {
                 // User is signed in, redirect to dashboard
                 window.location.href = 'dashboard.html';
             }
         });
+        
+        // Check current session on page load
+        (async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session?.user) {
+                window.location.href = 'dashboard.html';
+            }
+        })();
     </script>
 </body>
 </html>
